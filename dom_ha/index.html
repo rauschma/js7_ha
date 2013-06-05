@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Vier gewinnt</title>
+    <style type="text/css">
+        td {
+            width: 0.8cm;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vier gewinnt</h1>
+
+    <div id="stateMessage"></div>
+    <p>
+    <table>
+        <tr>
+            <td><a href="" id="columnClick0">V</a></td>
+            <td><a href="" id="columnClick1">V</a></td>
+            <td><a href="" id="columnClick2">V</a></td>
+            <td><a href="" id="columnClick3">V</a></td>
+            <td><a href="" id="columnClick4">V</a></td>
+            <td><a href="" id="columnClick5">V</a></td>
+            <td><a href="" id="columnClick6">V</a></td>
+        </tr>
+        <tr><td id="00"></td><td id="10"></td><td id="20"></td><td id="30"></td><td id="40"></td><td id="50"></td><td id="60"></td></tr>
+        <tr><td id="01"></td><td id="11"></td><td id="21"></td><td id="31"></td><td id="41"></td><td id="51"></td><td id="61"></td></tr>
+        <tr><td id="02"></td><td id="12"></td><td id="22"></td><td id="32"></td><td id="42"></td><td id="52"></td><td id="62"></td></tr>
+        <tr><td id="03"></td><td id="13"></td><td id="23"></td><td id="33"></td><td id="43"></td><td id="53"></td><td id="63"></td></tr>
+        <tr><td id="04"></td><td id="14"></td><td id="24"></td><td id="34"></td><td id="44"></td><td id="54"></td><td id="64"></td></tr>
+        <tr><td id="05"></td><td id="15"></td><td id="25"></td><td id="35"></td><td id="45"></td><td id="55"></td><td id="65"></td></tr>
+        <tr><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td></tr>
+    </table>
+    <p>
+    <a href="" id="startLink">Start</a>
+    &nbsp;&nbsp;&nbsp;
+    <label><input type="checkbox" id="humanStarts"> X (Mensch) fängt an</label>
+
+    <script src="board4.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        'use strict';
+        (function () {
+            var globalBoard = new board4.Board();
+            var currentState;
+            var humanColor = board4.Color.RED;
+            var computerColor = board4.Color.YELLOW;
+
+            var states = {};
+            states.BEFORE = {
+                message: 'Klicke auf Start, um anzufangen',
+                entering: doNothing,
+                columnClick: doNothing
+            };
+            states.START = {
+                message: 'Spiel beginnt',
+                entering: function () {
+                    globalBoard.clearBoard();
+                    displayBoard();
+                    if (document.getElementById('humanStarts').checked) {
+                        enterState(states.HUMAN_MOVE);
+                    } else {
+                        enterState(states.COMPUTER_MOVE);
+                    }
+                },
+                columnClick: doNothing
+            };
+            states.COMPUTER_MOVE = {
+                message: 'Der Computer zieht',
+                entering: function () {
+                    var opts = { bestCol: undefined };
+                    globalBoard.computeMove(computerColor, opts);
+                    globalBoard.makeMove(opts.bestCol, computerColor);
+                    displayBoard();
+                    if (globalBoard.isGameOver()) {
+                        enterState(states.AFTER);
+                    } else {
+                        enterState(states.HUMAN_MOVE);
+                    }
+                },
+                columnClick: doNothing
+            };
+            states.HUMAN_MOVE = {
+                message: 'Bitte einen Zug machen',
+                entering: doNothing,
+                columnClick: function (col) {
+                    globalBoard.makeMove(col, humanColor);
+                    displayBoard();
+                    if (globalBoard.isGameOver()) {
+                        enterState(states.AFTER);
+                    } else {
+                        enterState(states.COMPUTER_MOVE);
+                    }
+                }
+            };
+            states.AFTER = {
+                message: 'Spiel zu Ende, klicke auf Start, um anzufangen',
+                entering: doNothing,
+                columnClick: doNothing
+            };
+
+            function doNothing() {}
+
+            function enterState(state) {
+                try {
+                    currentState = state;
+                    document.getElementById("stateMessage").innerText = currentState.message;
+                    currentState.entering();
+                } catch(e) {
+                    console.log(e.stack);
+                    alert(e);
+                }
+            }
+
+            function displayBoard() {
+                for (var y = 0; y < board4.DIM_Y; y++) {
+                    for (var x = 0; x < board4.DIM_X; x++) {
+                        var color = globalBoard.getCell(x, y).color;
+                        var uiCell = document.getElementById(String(x)+String(y));
+                        uiCell.innerText = (color ? color : '.');
+                    }
+                }
+            }
+            function init() {
+                document.getElementById('startLink')
+                        .addEventListener('click', function (event) {
+                            enterState(states.START);
+                            event.preventDefault();
+                        });
+                for(var col=0; col < board4.DIM_X; col++) {
+                    document.getElementById('columnClick'+col)
+                            .addEventListener('click', function (col) {
+                                currentState.columnClick(col);
+                                event.preventDefault();
+                            }.bind(null, col));
+                }
+                displayBoard();
+                enterState(states.BEFORE);
+            }
+            init();
+        }());
+    </script>
+</body>
+</html>
